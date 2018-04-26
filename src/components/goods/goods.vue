@@ -4,7 +4,8 @@
 			<div class="menu-wrapper" ref="menuDiv">
 				<ul>
 					<!-- current 代表当前的状态 -->
-					<li class="menu-item" v-for="(good,index) in goods" :class="{current :currIndex == index}">
+					<li class="menu-item" v-for="(good,index) in goods"   :class="{current:currIndex==index}"
+						 @click="clickMenuItem(index)">
 						<span class="text border-1px">
 							<span v-if="good.type>=0" :class="classMap[good.type]" class="spc">满</span>{{good.name}}
 						</span>
@@ -32,7 +33,7 @@
 										<span class="old" v-show="food.oldPrice">${{food.oldPrice}}</span>
 									</div>
 									<div class="cartcontrol-wrapper">
-										cartcontrol组件
+										<cartcontrol :food="food" :updateFoodCount="updateFoodCount"></cartcontrol>
 									</div>
 								</div>
 							</li>
@@ -48,6 +49,7 @@
 <script type="text/javascript">
 import axios from 'axios'
 import Bscroll from 'better-scroll'
+import cartcontrol from '../cartcontrol/cartcontrol'
 	export default{
 		data (){
 			return {
@@ -68,8 +70,8 @@ import Bscroll from 'better-scroll'
 
 						//创建scroll 对象
 						this.$nextTick(()=>{
-							this._initScroll() //初始化滚动条对象
-							this._initTops()   //初始化top值
+							this._initScroll(); //初始化滚动条对象
+							this._initTops() ;  //初始化tops数组
 						})
 						
 					}
@@ -77,56 +79,85 @@ import Bscroll from 'better-scroll'
 		},
 		methods:{
 
-			_initScroll(){
-              //创建左右对应的scroll 对应的列表
-              new Bscroll(this.$refs.menuDiv)
-              //创建右对应的scroll 对应的列表
-              const foodScroller = new Bscroll(this.$refs.menuFood,{
-              	 probeType :3  //标识分发scroll 事件 ----> 绑定的scroll事件才会调用
-              })
-              //监视foods列表的滚动
-              foodScroller.on("scroll",(event)=>{
-              	 //console.log(event.x,event.y)
+            _initScroll(){
+              	//创建左侧列表对应的scroll对象 
+              	new Bscroll(this.$refs.menuDiv,{
+              		click:true//响应点击
+              	})
+              	//创建右侧列表对应的scroll对象 
+              this.foodScroller = new Bscroll(this.$refs.menuFood,{
+                 click:true,
+              	 probeType:3   //标识分发scroll 事件 --》 绑定scroll 回调函数才会调用
+              });
+              //监视food列表滚动
+              this.foodScroller.on("scroll",(event) => {
+                  
+                  if (!this.clickMenu) {
+                  	this.scrollY = Math.abs(event.y)
+                  }
 
-              	 //Math.abs 获取绝对值
-              	 this.scrollY=Math.abs(event.y)
-              	 console.log(this.scrollY)
+               }),
+              this.foodScroller.on("scrollEnd",(event) => {
+              	  this.clickMenu = false
               })
-			},
-			_initTops(){
-				//创建一个空数组
-               // const  tops = [];
-               // let top=0;
-               // tops.push(top)
-               // const lis = this.$refs.menuFood.getElementsByClassName("food-list-hook")
-               // Array.prototype.slice.call(lis).forEach(li=>{
-               // 		top+=li.clientHeight
-               // 		tops.push(top)
-               // })
-               // //更新tops
-               // this.tops = tops
-               // console.log(tops+"------")
-               const tops=[];
-               let top = 0;
-               tops.push(top);
-               const lis= this.$refs.menuFood.getElementsByClassName("food-list-hook");
-               Array.prototype.slice.call(lis).forEach(li =>{
-               	 top+=li.clientHeight;
-               	 tops.push(top)
-               })
-               this.tops=tops
-			}
-		},
+            },
+            _initTops(){
+               	//定义一个空数组
+               	const tops = [];
+               	let top = 0;
+               	tops.push(top);
+               	const lis = this.$refs.menuFood.getElementsByClassName("food-list-hook");
+               	Array.prototype.slice.call(lis).forEach(li =>{
+               		top += li.clientHeight;
+               		tops.push(top);
+               	})
+               	this.tops = tops;
+               },
+               clickMenuItem(index) {
+               	 console.log(index) 
+               	 //响应到对应的 li 上 
+               	 const li = this.$refs.menuFood.getElementsByClassName("food-list-hook")[index];
+               	 console.log(li);
+               	 this.clickMenu = true;
+               	 this.scrollY = this.tops[index]
+
+               	 this.foodScroller.scrollToElement( li,300)
+               
+            },
+            updateFoodCount (food,isAdd){
+            	 // isAdd 用来判断是否增加或者减少 如果为增加  则为true 否则为false 
+                   //开始判断是否有食物
+                   if (isAdd) { //先判断是否增加 如果增加为true 否则为false
+                   	   if (!food.count) { // 先判断 food.cound 是否有食物
+                   	   	   // food.count =1  这样写并没有给对象添加新的属性 count 
+                           //$set( ) 可是设置对象属性
+                           this.$set(food,"count",1)
+                   	   }else{
+                   	   	food.count++
+                   	   }
+
+                   }else{
+                   	if (food.count) {
+                   		food.count--
+                   	}
+
+                   }
+            }
+		 },
         computed:{
            currIndex(){
            	const {tops,scrollY} = this
             //findIndex() ==> 返回每个true的回调所对应的index
-            //scrollY >= 当前top值&&scrollY <=下一个top值
-            return tops.findIndex((top,index) =>{
-              return scrollY >=top && scrollY <= tops[index+1]
+            //scrollY >= 当前top值&&scrollY <下一个top值
+            return tops.findIndex((top,index) => {
+            	return scrollY >= top && scrollY < tops[index +1]
             })
 
            }
+
+        },
+        components:{
+        	cartcontrol
         }
 	}
 </script>
@@ -155,8 +186,8 @@ import Bscroll from 'better-scroll'
 	    			border-bottom 1px solid #ccc
 	    			line-height 54px
 
-	    		.current
-	    		 	background #fff	
+			.current
+			 	background #fff	
 	    .spc
 	    	width 10px
 	    	height 10px    

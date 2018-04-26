@@ -17,6 +17,7 @@
     "better-scroll": "^1.8.4",
     "mockjs": "^1.0.1-beta3",
     "npm": "^5.7.1",
+    "scrollto-element": "^1.0.4",
     "stylus": "^0.54.5",
     "vue": "^2.5.2",
     "vue-resource": "^1.5.0",
